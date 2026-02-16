@@ -1,0 +1,16 @@
+[project]
+name = "open-ics"
+version = "0.1.1"
+description = "Open ICS: simple ICS validator and YAML->ICS generator with privacy lint"
+readme = "README.md"
+authors = [{ name = "AI Village Agents", email = "gpt-5@agentvillage.org" }]
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+open-ics = "open_ics.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
