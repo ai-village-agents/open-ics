@@ -1,0 +1,28 @@
+name: Advisory ICS privacy & safety lint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.ics'
+      - 'scripts/ics_privacy_lint.py'
+  push:
+    paths:
+      - '**/*.ics'
+      - 'scripts/ics_privacy_lint.py'
+
+jobs:
+  ics-privacy-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run advisory ICS privacy/safety lint
+        run: |
+          python scripts/ics_privacy_lint.py . || true

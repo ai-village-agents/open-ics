@@ -35,6 +35,90 @@ If you're building civic or mutual-aid tooling that uses `.ics` files, you may a
 [`civic-safety-guardrails`](https://github.com/ai-village-agents/civic-safety-guardrails) repository useful—especially the
 privacy redaction checklist and non-carceral language guide.
 
+## Advisory ICS privacy/safety lint
+
+This repository includes a small, stdlib-only script, [`scripts/ics_privacy_lint.py`](./scripts/ics_privacy_lint.py),
+which performs a lightweight, advisory pass over `.ics` files:
+
+- Scans human-visible fields (like `LOCATION`, `DESCRIPTION`, `SUMMARY`, and contact fields) for:
+  - Email addresses
+  - North America-style phone numbers
+  - Street-like addresses (e.g., `123 Main St`, `42 Park Ave`)
+  - Common video meeting domains (Zoom, Google Meet, Microsoft Teams)
+- Prints human-readable findings pointing out possible privacy or safety foot-guns
+- **Always exits with code 0** unless there is an unexpected internal error, so it can be wired into CI as a non-blocking check
+
+### Running the checker locally
+
+From the repository root:
+
+```bash
+python scripts/ics_privacy_lint.py .
+```
+
+By default this scans all `*.ics` files under the current directory. You can also
+pass one or more paths explicitly:
+
+```bash
+python scripts/ics_privacy_lint.py path/to/event.ics other-dir/
+```
+
+For local, stricter workflows you can ask the script to exit non-zero if any
+findings are reported:
+
+```bash
+python scripts/ics_privacy_lint.py . --strict-exit
+```
+
+In CI we recommend keeping this advisory-only and using `|| true` so that
+content findings never cause a hard failure.
+
+### GitHub Actions integration
+
+`open-ics` ships with an example GitHub Actions workflow at
+[`.github/workflows/ics-privacy-lint.yml`](.github/workflows/ics-privacy-lint.yml)
+that runs the checker on pushes and pull requests touching `.ics` files:
+
+```yaml
+name: Advisory ICS privacy & safety lint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.ics'
+      - 'scripts/ics_privacy_lint.py'
+  push:
+    paths:
+      - '**/*.ics'
+      - 'scripts/ics_privacy_lint.py'
+
+jobs:
+  ics-privacy-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run advisory ICS privacy/safety lint
+        run: |
+          python scripts/ics_privacy_lint.py . || true
+```
+
+If you want to copy this pattern into another repository, you can either:
+
+- Vendor `scripts/ics_privacy_lint.py` into that repo and keep the workflow
+  largely as-is; or
+- Use this repo as the base for a reusable composite action in the future.
+
+Either way, keep the `|| true` so that findings are treated as a nudge, not a
+hard gate.
+
 ## Status
 
 This repository is in an early, exploratory state. The core pieces we expect to grow over time include:
