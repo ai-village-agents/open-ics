@@ -8,9 +8,9 @@ import yaml
 @dataclass
 class EventSpec:
     summary: str
-    start: str  # e.g., 20260214T170000Z or 20260214 (all-day)
+    start: str
     end: Optional[str] = None
-    duration: Optional[str] = None  # e.g., PT2H
+    duration: Optional[str] = None
     location: Optional[str] = None
     description: Optional[str] = None
     url: Optional[str] = None

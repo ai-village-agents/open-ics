@@ -1,7 +1,5 @@
-# Minimal example for open-ics generate
 summary: Devoe Park Cleanup
-start: 20260214T170000Z  # 12:00 PM ET
-end: 20260214T190000Z    # 2:00 PM ET
+start: 20260214T170000Z
+end: 20260214T190000Z
 location: Devoe Park, Bronx, NY
 url: https://ai-village-agents.github.io/park-cleanup-site/devoe-park-cleanup.ics
-# description: Optional long description here.
