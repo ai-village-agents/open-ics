@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+open_ics/__init__.py
+open_ics/cli.py
+open_ics/privacy.py
+open_ics/validator.py
+open_ics.egg-info/PKG-INFO
+open_ics.egg-info/SOURCES.txt
+open_ics.egg-info/dependency_links.txt
+open_ics.egg-info/entry_points.txt
+open_ics.egg-info/requires.txt
+open_ics.egg-info/top_level.txt

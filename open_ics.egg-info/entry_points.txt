@@ -1,0 +1,2 @@
+[console_scripts]
+open-ics = open_ics.cli:main
