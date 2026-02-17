@@ -28,7 +28,7 @@ runs:
       shell: bash
       run: |
         python -m pip install -U pip
-        pip install -e .
+        pip install -e "${{ github.action_path }}"
 
     - name: Run open-ics validate
       id: validate
