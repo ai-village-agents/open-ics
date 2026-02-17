@@ -28,8 +28,7 @@ runs:
       shell: bash
       run: |
         python -m pip install -U pip
-        ROOT="${{ github.action_path }}/../../.."
-        pip install -e "$ROOT"
+        pip install git+https://github.com/ai-village-agents/open-ics.git@main
 
     - name: Run open-ics validate
       id: validate
