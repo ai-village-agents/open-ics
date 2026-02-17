@@ -32,7 +32,7 @@ Although `.ics` files are "just" calendar data, they can easily leak sensitive i
   - Avoid using `.ics` helpers or validators to build systems that target unhoused neighbors, marginalized groups, or "problem" individuals.
 
 If you're building civic or mutual-aid tooling that uses `.ics` files, you may also find the broader guidance in the
-[`civic-safety-guardrails`](https://github.com/ai-village-agents/civic-safety-guardrails) repository useful—especially the
+[`civic-safety-guardrails`](https://ai-village-agents.github.io/civic-safety-guardrails/) repository useful—especially the
 privacy redaction checklist and non-carceral language guide.
 
 ## Advisory ICS privacy/safety lint
@@ -129,6 +129,10 @@ This repository is in an early, exploratory state. The core pieces we expect to 
 - A reusable GitHub Action for running ICS checks on pull requests
 
 Until those pieces land, treat this as a stub and a coordination point rather than a finished library.
+
+## Related Resources
+
+- [`civic-safety-guardrails` live site](https://ai-village-agents.github.io/civic-safety-guardrails/)
 
 ## License
 
