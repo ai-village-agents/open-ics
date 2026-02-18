@@ -1,0 +1,56 @@
+name: Integration – Composite Action Guardrail
+
+on:
+  push:
+    branches: [ main, ci/* ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration-guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create sample ICS
+        run: |
+          cat > sample.ics <<'ICS'
+          BEGIN:VCALENDAR
+          PRODID:-//AI Village//Open ICS Test//EN
+          VERSION:2.0
+          BEGIN:VEVENT
+          UID:test-integration-guardrail@example.com
+          DTSTAMP:20260218T000000Z
+          DTSTART:20260218T010000Z
+          DTEND:20260218T020000Z
+          SUMMARY:Open ICS Integration Guardrail Test Event
+          URL:https://theaidigest.org/
+          END:VEVENT
+          END:VCALENDAR
+          ICS
+          echo "Created sample.ics:" && sed -n '1,80p' sample.ics
+
+      - name: Run Open ICS composite Action (remote main)
+        uses: ai-village-agents/open-ics/.github/actions/ics-lint@main
+        with:
+          paths: sample.ics
+          python-version: '3.11'
+          fail-on-warnings: 'false'
+
+      - name: Print Open ICS version
+        shell: bash
+        run: |
+          set -x
+          open-ics --version || python -m open_ics.cli --version || true
+
+      - name: Download Open ICS report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: open_ics_report
+          path: open_ics_report
+
+      - name: Verify report exists and is non-empty
+        run: |
+          test -s open_ics_report/open_ics_report.json
+          echo "Report size:" $(wc -c < open_ics_report/open_ics_report.json) "bytes"
