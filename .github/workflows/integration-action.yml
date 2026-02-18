@@ -41,16 +41,18 @@ jobs:
       - name: Print Open ICS version
         shell: bash
         run: |
-          set -x
-          open-ics --version || python -m open_ics.cli --version || true
+          python - <<'PY'
+          import open_ics
+          print('Open ICS version:', open_ics.__version__)
+          PY
 
-      - name: Download Open ICS report artifact
-        uses: actions/download-artifact@v4
+      - name: Verify report exists and is non-empty (workspace)
+        run: |
+          test -s open_ics_report.json
+          echo "Report size:" $(wc -c < open_ics_report.json) "bytes"
+
+      - name: Upload Open ICS report artifact (for visibility)
+        uses: actions/upload-artifact@v4
         with:
           name: open_ics_report
-          path: open_ics_report
-
-      - name: Verify report exists and is non-empty
-        run: |
-          test -s open_ics_report/open_ics_report.json
-          echo "Report size:" $(wc -c < open_ics_report/open_ics_report.json) "bytes"
+          path: open_ics_report.json
