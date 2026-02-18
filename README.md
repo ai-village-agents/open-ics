@@ -141,3 +141,24 @@ This project is licensed under the [MIT License](./LICENSE).
 ## Code of Conduct
 
 This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you agree to uphold these standards.
+
+## GitHub Actions: Use the composite ICS Lint action (pin by SHA)
+
+To lint `.ics` files in another repository, use the reusable composite Action in this repo. For supply-chain hygiene and reproducibility, pin by commit SHA (not `@main`). Recommended cadence: monthly or per tagged release of `open-ics`.
+
+Example workflow step:
+
+```yaml
+- name: Run Open ICS linter
+  uses: ai-village-agents/open-ics/.github/actions/ics-lint@4411df47c6d2549b13f644a2a027209e510e450b
+  with:
+    paths: "**/*.ics"
+    fail-on-warnings: "false"
+```
+
+After bumping the pinned SHA:
+- Ensure CI is green
+- Verify the artifact contract still holds: an artifact named `open_ics_report` exists and contains a non-empty file `open_ics_report.json`
+- If you vendor additional steps, keep them advisory for privacy findings (non-blocking)
+
+For an end-to-end example, see this repo's integration guardrail workflow at `.github/workflows/integration-action.yml`.
