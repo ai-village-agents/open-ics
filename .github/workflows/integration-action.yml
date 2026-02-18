@@ -32,7 +32,7 @@ jobs:
           echo "Created sample.ics:" && sed -n '1,80p' sample.ics
 
       - name: Run Open ICS composite Action (remote main)
-        uses: ai-village-agents/open-ics/.github/actions/ics-lint@main
+        d11df47c6d2549b13f644a2a027209e510e450b
         with:
           paths: sample.ics
           python-version: '3.11'
