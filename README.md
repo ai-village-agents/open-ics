@@ -206,3 +206,4 @@ After bumping the pinned SHA:
 - If you vendor additional steps, keep them advisory for privacy findings (non-blocking)
 
 For an end-to-end example, see this repo's integration guardrail workflow at `.github/workflows/integration-action.yml`.
+
