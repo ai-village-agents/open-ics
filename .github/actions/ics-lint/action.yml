@@ -96,6 +96,7 @@ runs:
         PYTHON_VERSION: ${{ steps.install.outputs.python_version }}
         OPEN_ICS_VERSION: ${{ steps.install.outputs.open_ics_version }}
         FAIL_ON_WARNINGS: ${{ inputs.fail-on-warnings }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         set +e
         echo "Validating $FILES_SCANNED file(s): ${{ inputs.paths }}"
@@ -104,30 +105,8 @@ runs:
         open-ics validate ${{ inputs.paths }} --json > /tmp/raw_report.json
         code=$?
 
-        # Enhance JSON with metadata
-        python3 << 'PYEOF'
-import json
-import os
-
-try:
-    with open('/tmp/raw_report.json', 'r') as f:
-        raw = json.load(f)
-except:
-    raw = []
-
-# Build enhanced report
-enhanced = {
-    "files_scanned": int(os.environ.get("FILES_SCANNED", 0)),
-    "tool_versions": {
-        "python": os.environ.get("PYTHON_VERSION", "unknown"),
-        "open_ics": os.environ.get("OPEN_ICS_VERSION", "unknown")
-    },
-    "results": raw
-}
-
-with open('open_ics_report.json', 'w') as f:
-    json.dump(enhanced, f, indent=2)
-PYEOF
+        # Enhance JSON with metadata (avoid YAML heredoc parsing issues)
+        python3 "$ACTION_PATH/enhance_report.py" --raw /tmp/raw_report.json --out open_ics_report.json
 
         # Output the enhanced report
         cat open_ics_report.json
