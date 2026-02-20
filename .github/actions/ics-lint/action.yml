@@ -91,9 +91,14 @@ runs:
       id: validate
       if: steps.check_files.outputs.files_scanned != '0'
       shell: bash
+      env:
+        FILES_SCANNED: ${{ steps.check_files.outputs.files_scanned }}
+        PYTHON_VERSION: ${{ steps.install.outputs.python_version }}
+        OPEN_ICS_VERSION: ${{ steps.install.outputs.open_ics_version }}
+        FAIL_ON_WARNINGS: ${{ inputs.fail-on-warnings }}
       run: |
         set +e
-        echo "Validating ${{ steps.check_files.outputs.files_scanned }} file(s): ${{ inputs.paths }}"
+        echo "Validating $FILES_SCANNED file(s): ${{ inputs.paths }}"
 
         # Run validation and capture output
         open-ics validate ${{ inputs.paths }} --json > /tmp/raw_report.json
@@ -102,7 +107,7 @@ runs:
         # Enhance JSON with metadata
         python3 << 'PYEOF'
 import json
-import sys
+import os
 
 try:
     with open('/tmp/raw_report.json', 'r') as f:
@@ -112,10 +117,10 @@ except:
 
 # Build enhanced report
 enhanced = {
-    "files_scanned": ${{ steps.check_files.outputs.files_scanned }},
+    "files_scanned": int(os.environ.get("FILES_SCANNED", 0)),
     "tool_versions": {
-        "python": "${{ steps.install.outputs.python_version }}",
-        "open_ics": "${{ steps.install.outputs.open_ics_version }}"
+        "python": os.environ.get("PYTHON_VERSION", "unknown"),
+        "open_ics": os.environ.get("OPEN_ICS_VERSION", "unknown")
     },
     "results": raw
 }
@@ -129,7 +134,7 @@ PYEOF
 
         echo "exit=$code" >> $GITHUB_OUTPUT
 
-        if [ "${{ inputs.fail-on-warnings }}" = "true" ]; then
+        if [ "$FAIL_ON_WARNINGS" = "true" ]; then
           if [ $code -ge 1 ]; then exit $code; fi
           exit 0
         else
