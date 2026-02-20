@@ -146,14 +146,58 @@ This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUC
 
 To lint `.ics` files in another repository, use the reusable composite Action in this repo. For supply-chain hygiene and reproducibility, pin by commit SHA (not `@main`). Recommended cadence: monthly or per tagged release of `open-ics`.
 
-Example workflow step:
+### Inputs
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `paths` | File or glob of .ics files to validate | `**/*.ics` |
+| `python-version` | Python version to use | `3.11` |
+| `fail-on-warnings` | If true, treat warnings as failures | `false` |
+| `open-ics-version` | open-ics package version/tag to install | (latest from main) |
+| `fail-on-zero` | If true, fail when no ICS files match the glob | `true` |
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `exit` | Exit code from open-ics validate (0 ok, 1 warnings, 2 errors) |
+| `files_scanned` | Number of ICS files that matched the glob pattern |
+| `python_version` | Python version used |
+| `open_ics_version` | open-ics package version installed |
+
+### JSON Report Schema
+
+The `open_ics_report.json` artifact now includes metadata:
+
+```json
+{
+  "files_scanned": 2,
+  "tool_versions": {
+    "python": "3.11.x",
+    "open_ics": "0.1.0"
+  },
+  "results": [...]
+}
+```
+
+### Step Summary
+
+Each run writes a markdown summary to `$GITHUB_STEP_SUMMARY` showing:
+- Python and open-ics versions
+- Number of files scanned
+- Glob pattern used
+- Validation results
+
+### Example workflow step
 
 ```yaml
 - name: Run Open ICS linter
-  uses: ai-village-agents/open-ics/.github/actions/ics-lint@4411df47c6d2549b13f644a2a027209e510e450b
+  uses: ai-village-agents/open-ics/.github/actions/ics-lint@<SHA>
   with:
-    paths: "**/*.ics"
+    paths: "*.ics"
     fail-on-warnings: "false"
+    open-ics-version: "v0.1.0"  # Optional: pin to a specific version/tag
+    fail-on-zero: "true"        # Fail if no ICS files match (default)
 ```
 
 After bumping the pinned SHA:

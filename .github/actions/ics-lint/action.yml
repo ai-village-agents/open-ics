@@ -15,6 +15,14 @@ inputs:
     description: 'If true, treat warnings as failures (exit 1)'
     required: false
     default: 'false'
+  open-ics-version:
+    description: 'open-ics package version to install (default: latest from main)'
+    required: false
+    default: ''
+  fail-on-zero:
+    description: 'If true, fail when no ICS files match the glob pattern (default: true)'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -25,31 +33,148 @@ runs:
         python-version: ${{ inputs.python-version }}
 
     - name: Install open-ics
+      id: install
       shell: bash
       run: |
         python -m pip install -U pip
-        pip install git+https://github.com/ai-village-agents/open-ics.git@main
+
+        # Install open-ics with optional version pinning
+        OPEN_ICS_VERSION="${{ inputs.open-ics-version }}"
+        if [ -n "$OPEN_ICS_VERSION" ]; then
+          echo "Installing open-ics@$OPEN_ICS_VERSION"
+          pip install "git+https://github.com/ai-village-agents/open-ics.git@$OPEN_ICS_VERSION"
+        else
+          echo "Installing open-ics@main (latest)"
+          pip install "git+https://github.com/ai-village-agents/open-ics.git@main"
+        fi
+
+        # Capture installed version
+        INSTALLED_VERSION=$(pip show open-ics 2>/dev/null | grep "^Version:" | cut -d' ' -f2 || echo "unknown")
+        PYTHON_VERSION=$(python --version 2>&1 | cut -d' ' -f2)
+
+        echo "python_version=$PYTHON_VERSION" >> $GITHUB_OUTPUT
+        echo "open_ics_version=$INSTALLED_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Check matched files
+      id: check_files
+      shell: bash
+      run: |
+        # Expand the glob pattern and count matches
+        shopt -s nullglob globstar
+        files=( ${{ inputs.paths }} )
+        count=${#files[@]}
+
+        echo "files_scanned=$count" >> $GITHUB_OUTPUT
+
+        if [ $count -eq 0 ]; then
+          echo "⚠️ No ICS files matched pattern: ${{ inputs.paths }}"
+          echo "matched_files=" >> $GITHUB_OUTPUT
+
+          if [ "${{ inputs.fail-on-zero }}" = "true" ]; then
+            echo "::error::No ICS files matched the glob pattern '${{ inputs.paths }}'. Adjust the 'paths' input or set 'fail-on-zero: false' to skip."
+
+            # Write minimal JSON report for visibility
+            echo '{"files_scanned": 0, "matched": [], "tool_versions": {"python": "${{ steps.install.outputs.python_version }}", "open_ics": "${{ steps.install.outputs.open_ics_version }}"}, "error": "No files matched glob pattern"}' > open_ics_report.json
+
+            exit 1
+          fi
+        else
+          echo "✅ Matched $count ICS file(s):"
+          printf '%s\n' "${files[@]}"
+
+          # Store matched files (newline-separated)
+          printf '%s\n' "${files[@]}" > /tmp/matched_ics_files.txt
+          echo "matched_files=/tmp/matched_ics_files.txt" >> $GITHUB_OUTPUT
+        fi
 
     - name: Run open-ics validate
       id: validate
+      if: steps.check_files.outputs.files_scanned != '0'
       shell: bash
       run: |
         set +e
-        echo "Validating: ${INPUT_PATHS:-${{ inputs.paths }}}"
-        open-ics validate ${{ inputs.paths }} --json | tee open_ics_report.json
+        echo "Validating ${{ steps.check_files.outputs.files_scanned }} file(s): ${{ inputs.paths }}"
+
+        # Run validation and capture output
+        open-ics validate ${{ inputs.paths }} --json > /tmp/raw_report.json
         code=$?
+
+        # Enhance JSON with metadata
+        python3 << 'PYEOF'
+import json
+import sys
+
+try:
+    with open('/tmp/raw_report.json', 'r') as f:
+        raw = json.load(f)
+except:
+    raw = []
+
+# Build enhanced report
+enhanced = {
+    "files_scanned": ${{ steps.check_files.outputs.files_scanned }},
+    "tool_versions": {
+        "python": "${{ steps.install.outputs.python_version }}",
+        "open_ics": "${{ steps.install.outputs.open_ics_version }}"
+    },
+    "results": raw
+}
+
+with open('open_ics_report.json', 'w') as f:
+    json.dump(enhanced, f, indent=2)
+PYEOF
+
+        # Output the enhanced report
+        cat open_ics_report.json
+
         echo "exit=$code" >> $GITHUB_OUTPUT
+
         if [ "${{ inputs.fail-on-warnings }}" = "true" ]; then
-          # Map warnings (1) to success (0) only if explicit false; here true means fail on 1 or 2
           if [ $code -ge 1 ]; then exit $code; fi
           exit 0
         else
-          # Default: fail only on invalid (2); pass for 0 or 1
           if [ $code -eq 2 ]; then exit 2; fi
           exit 0
         fi
+
+    - name: Write step summary
+      if: always()
+      shell: bash
+      run: |
+        {
+          echo "## 📋 Open ICS Lint Results"
+          echo ""
+          echo "| Property | Value |"
+          echo "|----------|-------|"
+          echo "| Python | ${{ steps.install.outputs.python_version }} |"
+          echo "| open-ics | ${{ steps.install.outputs.open_ics_version }} |"
+          echo "| Files scanned | ${{ steps.check_files.outputs.files_scanned }} |"
+          echo "| Glob pattern | \`${{ inputs.paths }}\` |"
+
+          if [ "${{ steps.check_files.outputs.files_scanned }}" = "0" ]; then
+            echo ""
+            echo "⚠️ **No files matched the glob pattern.**"
+            echo ""
+            echo "Consider adjusting the \`paths\` input to match your ICS files."
+          elif [ -f open_ics_report.json ]; then
+            echo ""
+            echo "### Validation Results"
+            echo "\`\`\`json"
+            cat open_ics_report.json
+            echo "\`\`\`"
+          fi
+        } >> $GITHUB_STEP_SUMMARY
 
 outputs:
   exit:
     description: 'Exit code from open-ics validate (0 ok, 1 warnings, 2 errors)'
     value: ${{ steps.validate.outputs.exit }}
+  files_scanned:
+    description: 'Number of ICS files that matched the glob pattern'
+    value: ${{ steps.check_files.outputs.files_scanned }}
+  python_version:
+    description: 'Python version used'
+    value: ${{ steps.install.outputs.python_version }}
+  open_ics_version:
+    description: 'open-ics package version installed'
+    value: ${{ steps.install.outputs.open_ics_version }}
